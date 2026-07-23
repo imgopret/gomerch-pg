@@ -1,0 +1,51 @@
+# Dependencies
+node_modules
+
+# Build output
+dist
+*.tsbuildinfo
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# IDE
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+.idea
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Testing
+coverage
+*.lcov
+.nyc_output
+
+# Temporary files
+*.tmp
+*.temp
+.cache
+
+# HAR files (network capture)
+*.har
+
+# Config files (may contain sensitive data)
+.gomerch/
+.gopay-session.json
+.web-session.json
+config.json
+
+# OS
+Thumbs.db

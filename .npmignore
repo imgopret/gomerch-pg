@@ -1,0 +1,33 @@
+# Source files (hanya ship dist/)
+src/
+test/
+examples/
+
+# Config files
+tsconfig.json
+tsup.config.ts
+vitest.config.ts
+.gitignore
+.npmignore
+
+# Documentation (keep README.md and LICENSE)
+*.md
+!README.md
+
+# Development
+.vscode/
+.idea/
+*.log
+.env*
+
+# Test files
+coverage/
+*.test.ts
+*.spec.ts
+
+# Build artifacts
+*.tsbuildinfo
+
+# Other
+.DS_Store
+Thumbs.db

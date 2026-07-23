@@ -1,0 +1,66 @@
+{
+  "name": "gomerch-pg",
+  "version": "0.1.0",
+  "description": "GoPay Merchant Payment Gateway - Library payment gateway tidak resmi untuk GoPay Merchant / GoBiz Indonesia. Mengubah QRIS statis menjadi QRIS dinamis per pesanan dan mendeteksi settlement melalui polling API transaksi GoBiz.",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/yourusername/gomerch-pg.git"
+  },
+  "bugs": {
+    "url": "https://github.com/yourusername/gomerch-pg/issues"
+  },
+  "homepage": "https://github.com/yourusername/gomerch-pg#readme",
+  "author": "",
+  "keywords": [
+    "gopay",
+    "gobiz",
+    "qris",
+    "payment-gateway",
+    "indonesia",
+    "gofood-merchant",
+    "gomerch",
+    "gopay-merchant"
+  ],
+  "license": "MIT",
+  "type": "module",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "bin": {
+    "gomerch": "./dist/cli.cjs"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint \"src/**/*.ts\"",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "dependencies": {
+    "undici": "^6.19.8"
+  },
+  "devDependencies": {
+    "@types/node": "^20.14.0",
+    "@typescript-eslint/eslint-plugin": "^7.13.0",
+    "@typescript-eslint/parser": "^7.13.0",
+    "eslint": "^8.57.0",
+    "tsup": "^8.1.0",
+    "tsx": "^4.23.1",
+    "typescript": "^5.5.0",
+    "vitest": "^1.6.0"
+  }
+}
