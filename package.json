@@ -4,22 +4,28 @@
   "description": "GoPay Merchant Payment Gateway - Library payment gateway tidak resmi untuk GoPay Merchant / GoBiz Indonesia. Mengubah QRIS statis menjadi QRIS dinamis per pesanan dan mendeteksi settlement melalui polling API transaksi GoBiz.",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/yourusername/gomerch-pg.git"
+    "url": "git+https://github.com/imgopret/gomerch-pg.git"
   },
   "bugs": {
-    "url": "https://github.com/yourusername/gomerch-pg/issues"
+    "url": "https://github.com/imgopret/gomerch-pg/issues"
   },
-  "homepage": "https://github.com/yourusername/gomerch-pg#readme",
-  "author": "",
+  "homepage": "https://github.com/imgopret/gomerch-pg#readme",
+  "author": "imgopret",
   "keywords": [
     "gopay",
+    "gopay-merchant",
     "gobiz",
+    "gofood",
     "qris",
+    "qris-dynamic",
     "payment-gateway",
+    "payment",
     "indonesia",
-    "gofood-merchant",
+    "indonesian-payment",
+    "merchant",
     "gomerch",
-    "gopay-merchant"
+    "typescript",
+    "nodejs"
   ],
   "license": "MIT",
   "type": "module",
