@@ -48,22 +48,26 @@ export class TransactionClient {
     merchantId: string,
     query: TransactionQuery,
   ): Promise<MerchantTransaction[]> {
+    // Undefined -> sensible defaults; an explicit empty array -> omit the
+    // filter entirely (fetch all), letting the caller match client-side.
     const statuses = query.statuses ?? PAID_TRANSACTION_STATUSES;
     const paymentTypes = query.paymentTypes ?? DEFAULT_PAYMENT_TYPES;
+
+    const params: Record<string, string | number> = {
+      from: query.from ?? 0,
+      size: query.size ?? 20,
+      start_time: toIsoUtc(query.startTime),
+      end_time: toIsoUtc(query.endTime),
+      merchant_ids: merchantId,
+    };
+    if (statuses.length > 0) params.statuses = statuses.join(",");
+    if (paymentTypes.length > 0) params.payment_types = paymentTypes.join(",");
 
     const payload = await this.http.requestJson<TransactionListPayload>({
       method: "GET",
       baseUrl: GOJEK_API_BASE_URL,
       path: ENDPOINTS.transactions,
-      query: {
-        from: query.from ?? 0,
-        size: query.size ?? 20,
-        statuses: statuses.join(","),
-        payment_types: paymentTypes.join(","),
-        start_time: toIsoUtc(query.startTime),
-        end_time: toIsoUtc(query.endTime),
-        merchant_ids: merchantId,
-      },
+      query: params,
     });
 
     return (payload.transactions ?? []).map(normalizeTransaction);

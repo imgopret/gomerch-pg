@@ -7,13 +7,14 @@ import type {
 import {
   DEFAULT_PAYMENT_EXPIRY_MS,
   DEFAULT_POLL_INTERVAL_MS,
+  DEFAULT_TRANSACTION_LOOKBACK_MS,
 } from "../core/constants.js";
 import { GopayMerchantError } from "../core/errors.js";
 import { AmountAllocator } from "./amountAllocator.js";
 import { reconcile } from "./paymentMatcher.js";
 import { staticToDynamicQris } from "../qris/qris.js";
 import { paymentId as generatePaymentId } from "../utils/id.js";
-import { dayBounds, now } from "../utils/time.js";
+import { now } from "../utils/time.js";
 import type { Logger } from "../utils/logger.js";
 import { noopLogger } from "../utils/logger.js";
 
@@ -288,11 +289,17 @@ export class PaymentService extends TinyEmitter {
   }
 
   private async fetchRecentTransactions(): Promise<MerchantTransaction[]> {
-    const { start, end } = dayBounds(new Date());
+    // Rolling window (not a calendar day) to avoid timezone/day-boundary gaps.
+    // Fetch unfiltered (empty status/type) and match client-side, so variations
+    // in the feed's status/payment_type labels never hide a real payment.
+    const end = new Date();
+    const start = new Date(end.getTime() - DEFAULT_TRANSACTION_LOOKBACK_MS);
     return this.transactions.list(this.merchantId, {
       startTime: start,
       endTime: end,
       size: 50,
+      statuses: [],
+      paymentTypes: [],
     });
   }
 }

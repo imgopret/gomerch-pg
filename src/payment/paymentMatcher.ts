@@ -12,18 +12,41 @@ import type { MerchantTransaction, Payment } from "../core/types.js";
  * payments is guaranteed by the allocator, so an exact amount match within the
  * window unambiguously identifies the payer.
  */
+/** Success-like transaction statuses (compared case-insensitively). */
+const SETTLED_STATUSES = new Set([
+  "settlement",
+  "capture",
+  "success",
+  "paid",
+  "settled",
+  "completed",
+]);
+
 export function matchesPayment(
   payment: Payment,
   transaction: MerchantTransaction,
   clockSkewMs = 60_000,
 ): boolean {
-  if (transaction.grossAmount !== payment.uniqueAmount) {
+  // The paid amount may be reported in gross or real_gross depending on the
+  // feed; accept either.
+  const amountMatches =
+    transaction.grossAmount === payment.uniqueAmount ||
+    transaction.realGrossAmount === payment.uniqueAmount;
+  if (!amountMatches) {
+    return false;
+  }
+
+  // Only settle on success-like statuses so pending/failed transactions that
+  // happen to carry the same amount never settle a payment. Unknown/empty
+  // statuses are treated as success (fail-open) to tolerate feed variations.
+  const status = (transaction.status ?? "").trim().toLowerCase();
+  if (status && !SETTLED_STATUSES.has(status)) {
     return false;
   }
 
   const txTime = Date.parse(transaction.transactionTime);
   if (Number.isNaN(txTime)) {
-    // Cannot verify timing; fall back to amount match only.
+    // Cannot verify timing; fall back to amount + status match only.
     return true;
   }
 

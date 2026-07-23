@@ -42,18 +42,26 @@ export const DEFAULT_STATIC_HEADERS: Readonly<Record<string, string>> = {
   "x-appId": DEFAULT_APP_ID,
 };
 
-/** Transaction statuses that represent money actually received by the merchant. */
-export const PAID_TRANSACTION_STATUSES = ["SETTLEMENT", "CAPTURE"] as const;
+/**
+ * Transaction statuses that represent money actually received by the merchant.
+ * Lowercase to match the merchant-analytics feed (Midtrans-style values). The
+ * matcher compares case-insensitively, and polling fetches unfiltered, so these
+ * are only used by direct `TransactionClient.list` callers.
+ */
+export const PAID_TRANSACTION_STATUSES = ["settlement", "capture"] as const;
 
 /** Payment types the gateway polls for. GoPay QRIS is the primary channel. */
-export const DEFAULT_PAYMENT_TYPES = [
-  "QRIS",
-  "GOPAY",
-] as const;
+export const DEFAULT_PAYMENT_TYPES = ["qris", "gopay"] as const;
 
 export const DEFAULT_POLL_INTERVAL_MS = 3_000;
 export const DEFAULT_PAYMENT_EXPIRY_MS = 5 * 60 * 1_000;
 export const DEFAULT_REQUEST_TIMEOUT_MS = 20_000;
+/**
+ * How far back the poller scans the transaction feed. A rolling window (rather
+ * than a calendar day) avoids timezone/day-boundary gaps between the runtime
+ * (often UTC) and the merchant's local day.
+ */
+export const DEFAULT_TRANSACTION_LOOKBACK_MS = 24 * 60 * 60 * 1_000;
 
 /**
  * Amount uniqueness window. GoPay QRIS amounts are whole rupiah, so unique

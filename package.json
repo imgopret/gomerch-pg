@@ -1,6 +1,6 @@
 {
   "name": "gomerch-pg",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "GoPay Merchant Payment Gateway - Library payment gateway tidak resmi untuk GoPay Merchant / GoBiz Indonesia. Mengubah QRIS statis menjadi QRIS dinamis per pesanan dan mendeteksi settlement melalui polling API transaksi GoBiz.",
   "repository": {
     "type": "git",
