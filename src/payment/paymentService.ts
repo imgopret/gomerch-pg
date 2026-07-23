@@ -1,4 +1,3 @@
-import { EventEmitter } from "node:events";
 import type { TransactionClient } from "../api/transactionClient.js";
 import type {
   MerchantTransaction,
@@ -47,12 +46,65 @@ export interface PaymentServiceEvents {
   error: [Error];
 }
 
+type EmitterListener = (...args: any[]) => void;
+
+/**
+ * Minimal, runtime-agnostic event emitter used in place of Node's `node:events`
+ * so PaymentService runs on any JavaScript runtime (Workers, Edge, Deno,
+ * browsers) without a Node compatibility layer. Implements the small subset of
+ * the EventEmitter surface this library uses.
+ */
+class TinyEmitter {
+  private readonly handlers = new Map<string, Set<EmitterListener>>();
+
+  on(event: string, listener: EmitterListener): this {
+    let set = this.handlers.get(event);
+    if (!set) {
+      set = new Set();
+      this.handlers.set(event, set);
+    }
+    set.add(listener);
+    return this;
+  }
+
+  once(event: string, listener: EmitterListener): this {
+    const wrapped: EmitterListener = (...args) => {
+      this.off(event, wrapped);
+      listener(...args);
+    };
+    return this.on(event, wrapped);
+  }
+
+  off(event: string, listener: EmitterListener): this {
+    this.handlers.get(event)?.delete(listener);
+    return this;
+  }
+
+  /** Alias of {@link off} for `node:events` API familiarity. */
+  removeListener(event: string, listener: EmitterListener): this {
+    return this.off(event, listener);
+  }
+
+  removeAllListeners(event?: string): this {
+    if (event === undefined) this.handlers.clear();
+    else this.handlers.delete(event);
+    return this;
+  }
+
+  emit(event: string, ...args: unknown[]): boolean {
+    const set = this.handlers.get(event);
+    if (!set || set.size === 0) return false;
+    for (const listener of [...set]) listener(...args);
+    return true;
+  }
+}
+
 /**
  * Core orchestration: creates dynamic payments with unique amounts, and polls
  * the transaction feed to settle or expire them. Emits `paid`, `expired`, and
  * `error` events.
  */
-export class PaymentService extends EventEmitter {
+export class PaymentService extends TinyEmitter {
   private readonly merchantId: string;
   private readonly store: PaymentStore;
   private readonly transactions: TransactionClient;
@@ -174,25 +226,28 @@ export class PaymentService extends EventEmitter {
    * Run a single reconciliation pass: expire stale payments, fetch recent
    * transactions, and settle matches. Exposed for manual/tested invocation.
    */
-  async tick(): Promise<void> {
-    if (this.polling) return;
+  async tick(): Promise<{ paid: Payment[]; expired: Payment[] }> {
+    if (this.polling) return { paid: [], expired: [] };
     this.polling = true;
+    const paid: Payment[] = [];
     try {
-      await this.expireStale();
+      const expired = await this.expireStale();
       const pending = await this.store.listActive();
-      if (pending.length === 0) return;
+      if (pending.length === 0) return { paid, expired };
 
       const transactions = await this.fetchRecentTransactions();
       const matches = reconcile(pending, transactions, this.clockSkewMs);
 
       for (const { payment, transaction } of matches) {
-        await this.settle(payment, transaction);
+        paid.push(await this.settle(payment, transaction));
       }
+      return { paid, expired };
     } catch (error) {
       const err =
         error instanceof Error ? error : new Error(String(error));
       this.logger.error("poll tick failed", { message: err.message });
       this.emit("error", err);
+      return { paid, expired: [] };
     } finally {
       this.polling = false;
     }
@@ -201,7 +256,7 @@ export class PaymentService extends EventEmitter {
   private async settle(
     payment: Payment,
     transaction: MerchantTransaction,
-  ): Promise<void> {
+  ): Promise<Payment> {
     const paid: Payment = {
       ...payment,
       status: "paid",
@@ -213,19 +268,23 @@ export class PaymentService extends EventEmitter {
       transactionId: transaction.id,
     });
     this.emit("paid", paid);
+    return paid;
   }
 
-  private async expireStale(): Promise<void> {
+  private async expireStale(): Promise<Payment[]> {
     const current = now();
     const pending = await this.store.listActive();
+    const expired: Payment[] = [];
     for (const payment of pending) {
       if (payment.expiresAt <= current) {
-        const expired: Payment = { ...payment, status: "expired" };
-        await this.store.update(expired);
-        this.logger.info("payment expired", { id: expired.id });
-        this.emit("expired", expired);
+        const stale: Payment = { ...payment, status: "expired" };
+        await this.store.update(stale);
+        this.logger.info("payment expired", { id: stale.id });
+        this.emit("expired", stale);
+        expired.push(stale);
       }
     }
+    return expired;
   }
 
   private async fetchRecentTransactions(): Promise<MerchantTransaction[]> {

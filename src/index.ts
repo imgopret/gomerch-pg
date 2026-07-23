@@ -49,6 +49,12 @@ export { crc16ccitt } from "./utils/crc16.js";
 export { createConsoleLogger, noopLogger } from "./utils/logger.js";
 export type { Logger, LogLevel } from "./utils/logger.js";
 export { HttpClient } from "./http/httpClient.js";
+export type {
+  FetchLike,
+  HttpClientOptions,
+  HttpRequestOptions,
+  QueryValue,
+} from "./http/httpClient.js";
 
 export {
   GopayMerchantError,

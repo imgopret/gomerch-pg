@@ -4,6 +4,22 @@ import { AuthError } from "./errors.js";
 import type { Logger } from "../utils/logger.js";
 import { noopLogger } from "../utils/logger.js";
 
+/**
+ * Decode a base64url-encoded JWT segment to a UTF-8 string using only
+ * runtime-agnostic globals (`atob` + `TextDecoder`). This works outside Node.js
+ * (Cloudflare Workers, Vercel Edge, Deno, browsers) where `Buffer` is absent.
+ */
+function decodeJwtSegment(segment: string): string {
+  const base64 = segment.replace(/-/g, "+").replace(/_/g, "/");
+  const padded = base64.padEnd(
+    base64.length + ((4 - (base64.length % 4)) % 4),
+    "=",
+  );
+  const binary = atob(padded);
+  const bytes = Uint8Array.from(binary, (char) => char.charCodeAt(0));
+  return new TextDecoder().decode(bytes);
+}
+
 export interface TokenManagerConfig {
   /** Callback invoked after successful token refresh for persistence. */
   onTokenRefreshed?: (tokens: TokenSet) => Promise<void> | void;
@@ -139,9 +155,7 @@ export class TokenManager {
     try {
       const [, payload] = tokens.accessToken.split(".");
       if (payload) {
-        const decoded = JSON.parse(
-          Buffer.from(payload, "base64").toString("utf8")
-        );
+        const decoded = JSON.parse(decodeJwtSegment(payload));
         if (typeof decoded.exp === "number") {
           return decoded.exp * 1000; // Convert seconds to milliseconds
         }

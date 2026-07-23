@@ -1,4 +1,4 @@
-import { HttpClient } from "./http/httpClient.js";
+import { HttpClient, type FetchLike } from "./http/httpClient.js";
 import { AuthClient } from "./api/authClient.js";
 import { MerchantClient } from "./api/merchantClient.js";
 import { TransactionClient } from "./api/transactionClient.js";
@@ -59,6 +59,12 @@ export interface GopayMerchantConfig {
   /** Refresh tokens this many milliseconds before expiry. Default: 5 minutes. */
   refreshBeforeExpiryMs?: number;
   requestTimeoutMs?: number;
+  /**
+   * Custom fetch implementation for the HTTP layer. Defaults to the runtime's
+   * global `fetch`. Provide one to run on Node < 18 or to use a pooled/proxied
+   * client (e.g. an undici `Agent`).
+   */
+  fetch?: FetchLike;
   logger?: Logger;
 }
 
@@ -103,6 +109,7 @@ export class GopayMerchant {
       timeoutMs: config.requestTimeoutMs,
       logger: this.logger,
       defaultHeaders: this.buildHeaders(),
+      fetch: config.fetch,
     });
 
     this.auth = new AuthClient(this.http, { clientId: config.clientId });

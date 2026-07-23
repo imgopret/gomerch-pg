@@ -1,6 +1,6 @@
 # gomerch-pg
 
-Payment gateway tidak resmi untuk **GoPay Merchant / GoBiz** (Indonesia), ditulis dalam TypeScript untuk Node.js.
+Payment gateway tidak resmi untuk **GoPay Merchant / GoBiz** (Indonesia), ditulis dalam TypeScript. Sejak v0.2.0 **tanpa dependency runtime** dan berjalan di runtime JavaScript modern mana pun (Node.js 18+, Cloudflare Workers, Vercel Edge, Deno, Bun).
 
 GoPay Merchant adalah produk penerimaan pembayaran berbasis QRIS tanpa API pembayaran publik. Library ini merekonstruksi alur yang digunakan oleh dashboard merchant GoBiz resmi untuk:
 
@@ -36,6 +36,40 @@ Offset adalah bilangan bulat terkecil yang tersedia dalam rentang `[1, maxUnique
 
 ```bash
 npm install gomerch-pg
+```
+
+## Dukungan Runtime
+
+Sejak v0.2.0, gomerch-pg **tanpa dependency runtime** dan berjalan di mana pun `fetch` global tersedia:
+
+- Node.js 18+ (termasuk serverless berbasis Node: Vercel, AWS Lambda, dll.)
+- Cloudflare Workers
+- Vercel Edge Functions
+- Deno & Bun
+- Browser (untuk alur tanpa kredensial rahasia)
+
+Layer HTTP memakai `fetch` bawaan runtime. Untuk runtime tanpa `fetch` global (mis. Node < 18) atau untuk connection pooling/proxy, suntikkan implementasi sendiri lewat opsi `fetch`:
+
+```ts
+import { GopayMerchant } from "gomerch-pg";
+import { fetch as undiciFetch } from "undici";
+
+const gopay = new GopayMerchant({
+  merchantId: "G929951431",
+  fetch: undiciFetch as typeof fetch, // opsional; default: fetch global runtime
+});
+```
+
+### Deteksi pembayaran di serverless (tanpa proses long-lived)
+
+`payments().start()` memakai timer background (`setInterval`) yang cocok untuk proses long-lived (VPS/kontainer). Di serverless (Worker/Edge/Lambda) tidak ada proses yang hidup terus, jadi panggil `tick()` dari scheduler platform (Cloudflare Cron atau Durable Object alarm, Vercel Cron, dll). `tick()` mengembalikan `{ paid, expired }` sehingga Anda dapat bertindak langsung tanpa bergantung pada event emitter:
+
+```ts
+const payments = gopay.payments();
+const { paid, expired } = await payments.tick();
+for (const p of paid) {
+  // tandai order sebagai lunas, kirim barang, dst.
+}
 ```
 
 ## CLI (`gomerch`)
@@ -388,7 +422,7 @@ class RedisPaymentStore implements PaymentStore {
 ```
 src/
   core/        konstanta, typed errors, tipe domain
-  http/        JSON HTTP client berbasis undici
+  http/        JSON HTTP client berbasis fetch (transport injectable)
   api/         authClient, merchantClient, transactionClient
   qris/        EMVCo TLV parser + konverter statis->dinamis
   payment/     amountAllocator, paymentStore, paymentMatcher, paymentService
