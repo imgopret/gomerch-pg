@@ -3,46 +3,35 @@ name: Publish Package
 on:
   release:
     types: [created]
+  workflow_dispatch:
 
 jobs:
   publish:
     runs-on: ubuntu-latest
     permissions:
+      id-token: write # Required for npm trusted publishing (OIDC)
       contents: read
-      packages: write
-    
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-      
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '18'
-          registry-url: 'https://registry.npmjs.org'
-      
+          node-version: "24"
+          registry-url: "https://registry.npmjs.org"
+
+      - name: Upgrade npm (trusted publishing requires npm >= 11.5.1)
+        run: npm install -g npm@latest
+
       - name: Install dependencies
         run: npm ci
-      
+
       - name: Run tests
         run: npm test
-      
+
       - name: Build package
         run: npm run build
-      
-      - name: Publish to NPM
+
+      - name: Publish to npm (OIDC trusted publishing, no token)
         run: npm publish
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-      
-      - name: Setup Node.js for GitHub Packages
-        uses: actions/setup-node@v4
-        with:
-          node-version: '18'
-          registry-url: 'https://npm.pkg.github.com'
-          scope: '@imgopret'
-      
-      - name: Publish to GitHub Packages
-        run: npm publish
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
